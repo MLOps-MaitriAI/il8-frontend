@@ -1,4 +1,3 @@
-yaml
 name: Frontend Staging CI
 
 on:
