@@ -3,14 +3,14 @@ name: Production Deployment
 on:
   push:
     branches:
-      - production  # Only triggers on production branch
+      - production  # Only triggers on production branch after manual approval
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the latest code from production branch
+      # Checkout the latest code from the production branch
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -22,20 +22,20 @@ jobs:
       - name: Adding SSH key
         uses: shimataro/ssh-key-action@v2
         with:
-          key: ${{ secrets.SSH_PRIVATE_KEY }} # GitHub secret for SSH private key
-          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }} # GitHub secret for known_hosts entry of your server
+          key: ${{ secrets.SSH_PRIVATE_KEY }}  # GitHub secret for SSH private key
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}  # GitHub secret for known_hosts entry of your server
 
-      # Sync files to the server
-      - name: Sync files to server
+      # Sync frontend files to the server
+      - name: Sync frontend files to server
         run: |
-          rsync -avz --exclude=".git*" ./ your_user@your_server:/path/to/your/project
+          rsync -avz ./frontend/ your_user@your_server:/path/to/your/project/frontend
 
-      # Build Docker containers on the server
-      - name: Build and deploy on server
+      # Build and deploy on server
+      - name: Build and deploy using Docker Compose
         run: |
           ssh your_user@your_server 'cd /path/to/your/project && docker-compose down && docker-compose up -d --build'
 
       # Optionally run tests or restart services
       - name: Test Deployment
         run: |
-          ssh your_user@your_server 'cd /path/to/your/project && ./run_tests.sh'
+          ssh your_user@your_server 'cd /path/to/your/project && ./run_tests.sh'  # Adjust based on your test script
