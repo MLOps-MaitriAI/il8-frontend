@@ -1,21 +1,41 @@
-name: Frontend Production CD
+name: Production Deployment
 
 on:
   push:
     branches:
-      - production
+      - production  # Only triggers on production branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the latest code from production branch
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Sync changes to server
+      # Set up SSH to connect to the server
+      - name: Install SSH Client
+        run: sudo apt-get install -y openssh-client
+
+      # Add SSH Key (store your private key in GitHub Secrets as 'SSH_PRIVATE_KEY')
+      - name: Adding SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }} # GitHub secret for SSH private key
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }} # GitHub secret for known_hosts entry of your server
+
+      # Sync files to the server
+      - name: Sync files to server
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
-          cd /path/to/frontend && git pull origin production
-          docker-compose exec frontend npm install
-          docker-compose up -d frontend"
+          rsync -avz --exclude=".git*" ./ your_user@your_server:/path/to/your/project
+
+      # Build Docker containers on the server
+      - name: Build and deploy on server
+        run: |
+          ssh your_user@your_server 'cd /path/to/your/project && docker-compose down && docker-compose up -d --build'
+
+      # Optionally run tests or restart services
+      - name: Test Deployment
+        run: |
+          ssh your_user@your_server 'cd /path/to/your/project && ./run_tests.sh'
