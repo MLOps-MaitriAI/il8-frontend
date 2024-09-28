@@ -1,0 +1,23 @@
+name: Create Pull Request to Production
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Create Pull Request to Production
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}  # Automatically available
+          title: 'Merge staging into production'
+          body: 'Automated pull request to merge changes from staging to production.'
+          base: 'production'  # Target branch
+          head: 'staging'     # Source branch
