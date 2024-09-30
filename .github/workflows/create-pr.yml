@@ -16,8 +16,8 @@ jobs:
       - name: Create Pull Request to Production
         uses: peter-evans/create-pull-request@v3
         with:
-          token: ${{ secrets.IL8CICD}}  # Use the PAT secret
+          token: ${{ secrets.IL8_CI_CD }}  # Use the renamed PAT secret
           title: 'Merge staging into production'
           body: 'Automated pull request to merge changes from staging to production.'
           base: 'production'  # Target branch
-          head: 'staging'     # Source branch 
+          branch: 'create-pull-request/staging-to-production'  # This will be the auto-created branch name
