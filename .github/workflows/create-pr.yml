@@ -1,23 +1,21 @@
-name: Create Pull Request to Production
+name: Merge Staging to Production
 
 on:
   push:
     branches:
-      - staging
+      - 'staging'
 
 jobs:
-  create-pr:
+  merge-branch:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2  # Checkout the repository code
 
-      - name: Create Pull Request to Production
-        uses: peter-evans/create-pull-request@v3
+      - name: Merge Staging -> Production
+        uses: devmasx/merge-branch@master
         with:
-          token: ${{ secrets.IL8_CI_CD }}  # Use the renamed PAT secret
-          title: 'Merge staging into production'
-          body: 'Automated pull request to merge changes from staging to production.'
-          base: 'production'  # Target branch
-          branch: 'create-pull-request/staging-to-production'  # This will be the auto-created branch name
+          type: now
+          target_branch: production
+          message: 'Automated merge from staging to production'
+          github_token: ${{ secrets.IL8_CI_CD }}  # Use your Personal Access Token (PAT)
