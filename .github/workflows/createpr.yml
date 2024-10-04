@@ -1,31 +1,47 @@
-name: Create Pull Request from Staging to Production
+name: Merge Staging to Production
 
 on:
   push:
     branches:
-      - 'staging'
+      - staging
 
 jobs:
-  create-pull-request:
+  create_pull_request:
     runs-on: ubuntu-latest
-
     steps:
-      # Checkout the repository code, including the full history to avoid missing files
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0  # Fetch the entire repository history
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Create PR from Staging -> Production
+      - name: Create Pull Request
         uses: peter-evans/create-pull-request@v3
         with:
-          token: ${{ secrets.IL8_CI_CD }}  # Use your Personal Access Token (PAT)
-          title: 'Automated PR from Staging to Production'
-          body: 'Please review and approve the changes before merging to production.'
-          branch: staging  # Source branch (staging)
-          base: production  # Target branch (production)
-          draft: false  # Create a regular pull request, not a draft
-          delete-branch: false  # Do not delete the staging branch after merging
+          token: ${{ secrets.IL8_CI_CD }}
+          branch: merge-staging-to-production
+          base: production
+          title: Merge Staging to Production
+          body: |
+            This PR merges the latest changes from the staging branch into the production branch.
+            Please review and approve to proceed with the merge.
 
-      # Optional step: Output confirmation or additional steps after PR creation
-      - name: PR Created Notification
-        run: echo "Pull request from staging to production has been created."
+  merge_pull_request:
+    needs: create_pull_request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Wait for PR Approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ secrets.IL8_CI_CD }}
+          approvers: MLOps-MaitriAI
+
+      - name: Merge Pull Request
+        if: steps.approval.outputs.approved == 'true'
+        uses: pascalgn/automerge-action@v0.14.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.IL8_CI_CD }}
+          MERGE_LABELS: ""
+          MERGE_METHOD: "merge"
+          MERGE_COMMIT_MESSAGE: "Merge staging into production"
+          MERGE_DELETE_BRANCH: "true"
