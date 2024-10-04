@@ -15,7 +15,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '18.x'  # Using a recent LTS version of Node.js
+          node-version: '16'  # Using a recent LTS version of Node.js
 
       - name: Install dependencies
         working-directory: ./  # Assuming the frontend code is in the root directory
