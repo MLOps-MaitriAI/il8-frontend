@@ -40,11 +40,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Create Merge Branch
+        run: |
+          git checkout -b merge-staging-to-production
+
       - name: Create Pull Request
         id: create_pr
         uses: peter-evans/create-pull-request@v3
         with:
-          token: ${{ secrets.IL8_CI_CD }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           branch: merge-staging-to-production
           base: staging
           title: Merge Staging to Production
@@ -64,14 +68,14 @@ jobs:
         id: approval
         uses: trstringer/manual-approval@v1
         with:
-          secret: ${{ secrets.IL8_CI_CD }}
+          secret: ${{ secrets.GITHUB_TOKEN }}
           approvers: MLOps-MaitriAI
 
       - name: Merge Pull Request
         if: steps.approval.outputs.approved == 'true'
         uses: pascalgn/automerge-action@v0.14.3
         env:
-          GITHUB_TOKEN: ${{ secrets.IL8_CI_CD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MERGE_LABELS: ""
           MERGE_METHOD: "merge"
           MERGE_COMMIT_MESSAGE: "Merge staging into production"
