@@ -40,15 +40,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Create Merge Branch
-        run: |
-          git checkout -b merge-staging-to-production
-
       - name: Create Pull Request
         id: create_pr
         uses: peter-evans/create-pull-request@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.IL8_CI_CD }}
           branch: merge-staging-to-production
           base: staging
           title: Merge Staging to Production
@@ -56,14 +52,27 @@ jobs:
             This PR merges the latest changes from the staging branch into the production branch.
             Please review and approve to proceed with the merge.
           draft: false  # Set to true if you want to create a draft PR
-          add-paths: -A
-          commit-message: [create-pull-request] automated change
-          committer: GitHub <noreply@github.com>
-          author: MLOps-MaitriAI <MLOps-MaitriAI@users.noreply.github.com>
-          signoff: false
-          delete-branch: false
 
-      - name: Log Pull Request Creation
-        run: |
-          echo "Pull request created: ${create_pr.result}"
-          echo "Pull request URL: ${create_pr.result}"
+  merge_pull_request:
+    needs: create_pull_request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Wait for PR Approval
+        id: approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ secrets.IL8_CI_CD }}
+          approvers: MLOps-MaitriAI
+
+      - name: Merge Pull Request
+        if: steps.approval.outputs.approved == 'true'
+        uses: pascalgn/automerge-action@v0.14.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.IL8_CI_CD }}
+          MERGE_LABELS: ""
+          MERGE_METHOD: "merge"
+          MERGE_COMMIT_MESSAGE: "Merge staging into production"
+          MERGE_DELETE_BRANCH: "true"
