@@ -56,27 +56,14 @@ jobs:
             This PR merges the latest changes from the staging branch into the production branch.
             Please review and approve to proceed with the merge.
           draft: false  # Set to true if you want to create a draft PR
+          add-paths: -A
+          commit-message: [create-pull-request] automated change
+          committer: GitHub <noreply@github.com>
+          author: MLOps-MaitriAI <MLOps-MaitriAI@users.noreply.github.com>
+          signoff: false
+          delete-branch: false
 
-  merge_pull_request:
-    needs: create_pull_request
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Wait for PR Approval
-        id: approval
-        uses: trstringer/manual-approval@v1
-        with:
-          secret: ${{ secrets.GITHUB_TOKEN }}
-          approvers: MLOps-MaitriAI
-
-      - name: Merge Pull Request
-        if: steps.approval.outputs.approved == 'true'
-        uses: pascalgn/automerge-action@v0.14.3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MERGE_LABELS: ""
-          MERGE_METHOD: "merge"
-          MERGE_COMMIT_MESSAGE: "Merge staging into production"
-          MERGE_DELETE_BRANCH: "true"
+      - name: Log Pull Request Creation
+        run: |
+          echo "Pull request created: ${create_pr.result}"
+          echo "Pull request URL: ${create_pr.result}"
