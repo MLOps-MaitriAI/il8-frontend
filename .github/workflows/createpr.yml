@@ -6,7 +6,7 @@ on:
       - staging
 
 jobs:
-  test:
+  test_frontend:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -15,9 +15,10 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '18.17.0'  # Using a version compatible with latest npm
+          node-version: '18.x'  # Using a recent LTS version of Node.js
 
       - name: Install dependencies
+        working-directory: ./  # Assuming the frontend code is in the root directory
         run: |
           npm ci
           if [ $? -ne 0 ]; then
@@ -26,13 +27,19 @@ jobs:
           fi
 
       - name: Run linter
+        working-directory: ./
         run: npm run lint || echo "Linting failed but continuing"
 
       - name: Run tests
+        working-directory: ./
         run: npm test || echo "Tests failed but continuing"
 
+      - name: Build project
+        working-directory: ./
+        run: npm run build || echo "Build failed but continuing"
+
   create_pull_request:
-    needs: test
+    needs: test_frontend
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -41,7 +48,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.IL8_CI_CD }}
           branch: merge-staging-to-production
           base: production
           title: Merge Staging to Production
@@ -59,16 +66,15 @@ jobs:
       - name: Wait for PR Approval
         uses: trstringer/manual-approval@v1
         with:
-          secret: ${{ secrets.GITHUB_TOKEN }}
-          approvers: your-github-username
+          secret: ${{ secrets.IL8_CI_CD }}
+          approvers: MLOps-MaitriAI
 
       - name: Merge Pull Request
         if: steps.approval.outputs.approved == 'true'
         uses: pascalgn/automerge-action@v0.14.3
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.IL8_CI_CD }}
           MERGE_LABELS: ""
           MERGE_METHOD: "merge"
           MERGE_COMMIT_MESSAGE: "Merge staging into production"
           MERGE_DELETE_BRANCH: "true"
-          
