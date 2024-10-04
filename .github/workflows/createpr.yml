@@ -48,7 +48,7 @@ jobs:
         with:
           token: ${{ secrets.IL8_CI_CD }}
           branch: merge-staging-to-production
-          base: production
+          base: staging
           title: Merge Staging to Production
           body: |
             This PR merges the latest changes from the staging branch into the production branch.
