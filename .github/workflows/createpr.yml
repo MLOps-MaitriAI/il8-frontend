@@ -15,17 +15,13 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '14'  # or your preferred Node.js version
-
-      - name: Update npm
-        run: npm install -g npm@latest
+          node-version: '18.17.0'  # Using a version compatible with latest npm
 
       - name: Install dependencies
         run: |
-          npm install
+          npm ci
           if [ $? -ne 0 ]; then
-            echo "npm install failed, trying with package-lock.json"
-            rm package-lock.json
+            echo "npm ci failed, trying npm install"
             npm install
           fi
 
@@ -75,3 +71,4 @@ jobs:
           MERGE_METHOD: "merge"
           MERGE_COMMIT_MESSAGE: "Merge staging into production"
           MERGE_DELETE_BRANCH: "true"
+          
