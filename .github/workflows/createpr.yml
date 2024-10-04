@@ -48,12 +48,15 @@ jobs:
         with:
           token: ${{ secrets.IL8_CI_CD }}
           branch: merge-staging-to-production
-          base: staging
+          base: production
           title: Merge Staging to Production
           body: |
             This PR merges the latest changes from the staging branch into the production branch.
             Please review and approve to proceed with the merge.
           draft: false  # Set to true if you want to create a draft PR
+
+      - name: Log PR Creation Response
+        run: echo "PR Creation Response: ${{ steps.create_pr.outputs }}" 
 
   merge_pull_request:
     needs: create_pull_request
