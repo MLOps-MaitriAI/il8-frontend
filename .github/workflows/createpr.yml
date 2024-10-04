@@ -10,7 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2  # Checkout the repository code
+      # Checkout the repository code, including the full history to avoid missing files
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Fetch the entire repository history
 
       - name: Create PR from Staging -> Production
         uses: peter-evans/create-pull-request@v3
@@ -18,7 +21,11 @@ jobs:
           token: ${{ secrets.IL8_CI_CD }}  # Use your Personal Access Token (PAT)
           title: 'Automated PR from Staging to Production'
           body: 'Please review and approve the changes before merging to production.'
-          branch: staging  # Source branch
-          base: production  # Target branch
-          draft: false  # Set to true if you want the PR to be a draft
-          delete-branch: false  # Keep the staging branch after merge
+          branch: staging  # Source branch (staging)
+          base: production  # Target branch (production)
+          draft: false  # Create a regular pull request, not a draft
+          delete-branch: false  # Do not delete the staging branch after merging
+
+      # Optional step: Output confirmation or additional steps after PR creation
+      - name: PR Created Notification
+        run: echo "Pull request from staging to production has been created."
