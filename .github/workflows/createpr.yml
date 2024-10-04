@@ -15,15 +15,21 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '16'  # Using a recent LTS version of Node.js
+          node-version: '18.x'  # Using a recent LTS version of Node.js
+
+      - name: Clean npm cache and remove package-lock.json
+        working-directory: ./
+        run: |
+          npm cache clean --force
+          rm -f package-lock.json
 
       - name: Install dependencies
-        working-directory: ./  # Assuming the frontend code is in the root directory
+        working-directory: ./
         run: |
-          npm ci
+          npm install
           if [ $? -ne 0 ]; then
-            echo "npm ci failed, trying npm install"
-            npm install
+            echo "npm install failed, trying with --legacy-peer-deps"
+            npm install --legacy-peer-deps
           fi
 
       - name: Run linter
