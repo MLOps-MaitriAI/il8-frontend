@@ -21,9 +21,11 @@ jobs:
         run: |
           npm cache clean --force
           rm -f package-lock.json
+
       - name: Install dependencies
         run: |
           npm install || npm install --legacy-peer-deps
+
       - name: Display available scripts
         run: npm run
 
@@ -46,12 +48,15 @@ jobs:
         with:
           token: ${{ secrets.IL8_CI_CD }}
           branch: merge-staging-to-production
-          base: staging
+          base: production
           title: Merge Staging to Production
           body: |
             This PR merges the latest changes from the staging branch into the production branch.
             Please review and approve to proceed with the merge.
-          draft: false  # Set to true if you want to create a draft PR
+          draft: false
+
+      - name: Output PR URL
+        run: echo "Pull request created - ${{ steps.create_pr.outputs.pull-request-url }}"
 
   merge_pull_request:
     needs: create_pull_request
@@ -69,10 +74,9 @@ jobs:
 
       - name: Merge Pull Request
         if: steps.approval.outputs.approved == 'true'
-        uses: pascalgn/automerge-action@v0.14.3
         env:
           GITHUB_TOKEN: ${{ secrets.IL8_CI_CD }}
-          MERGE_LABELS: ""
-          MERGE_METHOD: "merge"
-          MERGE_COMMIT_MESSAGE: "Merge staging into production"
-          MERGE_DELETE_BRANCH: "true"
+          PR_URL: ${{ steps.create_pr.outputs.pull-request-url }}
+        run: |
+          pr_number=$(echo $PR_URL | awk -F'/' '{print $NF}')
+          gh pr merge $pr_number --merge --delete-branch
