@@ -10,30 +10,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3  # Updated to v3
-        with:
-          fetch-depth: 0
-
+        uses: actions/checkout@v2
       - name: Use Node.js
-        uses: actions/setup-node@v3  # Updated to v3
+        uses: actions/setup-node@v2
         with:
           node-version: '18.x'
-
       - name: Clean npm cache and remove package-lock.json
         run: |
           npm cache clean --force
           rm -f package-lock.json
-
       - name: Install dependencies
         run: |
           npm install || npm install --legacy-peer-deps
-
       - name: Display available scripts
         run: npm run
-
       - name: Run tests
         run: npm test -- --watchAll=false || echo "Tests failed but continuing"
-
       - name: Build project
         run: npm run build || echo "Build failed but continuing"
 
@@ -42,10 +34,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0
-
       - name: Create temporary branch without .github folder
         run: |
           git config user.name github-actions
@@ -53,23 +44,13 @@ jobs:
           git checkout -b temp-staging-branch staging
           git rm -r --cached .github
           git commit -m "Remove .github folder for merging"
-      
-      - name: Check for differences between branches
-        id: diff_check
-        run: |
-          git fetch origin production
-          git diff --exit-code origin/production || echo "Changes exist"
-        
-      - name: Create Pull Request if there are differences
-        if: ${{ steps.diff_check.outcome == 'failure' }}
+      - name: Create Pull Request
         env:
           GITHUB_TOKEN: ${{ secrets.IL8_CI_CD }}
         run: |
           pr_url=$(gh pr create --base production --head temp-staging-branch --title "Merge Staging to Production (Excluding .github)" --body "This PR merges the latest changes from the staging branch into the production branch, excluding the .github folder. Please review and approve to proceed with the merge.")
           echo "PR_URL=$pr_url" >> $GITHUB_ENV
-
       - name: Output PR URL
-        if: ${{ steps.diff_check.outcome == 'failure' }}
         run: echo "Pull request created - ${{ env.PR_URL }}"
 
   merge_pull_request:
@@ -77,15 +58,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-
+        uses: actions/checkout@v2
       - name: Wait for PR Approval
         id: approval
         uses: trstringer/manual-approval@v1
         with:
           secret: ${{ secrets.IL8_CI_CD }}
           approvers: MLOps-MaitriAI
-
       - name: Merge Pull Request
         if: steps.approval.outputs.approved == 'true'
         env:
@@ -93,7 +72,6 @@ jobs:
         run: |
           pr_number=$(echo ${{ env.PR_URL }} | awk -F'/' '{print $NF}')
           gh pr merge $pr_number --merge
-
       - name: Cleanup temporary branch
         if: steps.approval.outputs.approved == 'true'
         run: |
