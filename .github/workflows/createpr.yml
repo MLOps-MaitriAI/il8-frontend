@@ -44,28 +44,10 @@ jobs:
           git checkout -b temp-staging-branch staging
           git rm -r --cached .github
           git commit -m "Remove .github folder for merging"
-          git push origin temp-staging-branch
-      - name: Debug information
-        run: |
-          git branch -a
-          git log --oneline -n 5 production
-          git log --oneline -n 5 temp-staging-branch
-          git diff production temp-staging-branch
       - name: Create Pull Request
         env:
           GITHUB_TOKEN: ${{ secrets.IL8_CI_CD }}
         run: |
-          # Ensure branches are up-to-date
-          git fetch origin production:production
-          git fetch origin temp-staging-branch:temp-staging-branch
-          
-          # Check if there are any differences
-          if git diff --quiet production temp-staging-branch; then
-            echo "No differences found between production and temp-staging-branch"
-            exit 0
-          fi
-          
-          # Create PR
           pr_url=$(gh pr create --base production --head temp-staging-branch --title "Merge Staging to Production (Excluding .github)" --body "This PR merges the latest changes from the staging branch into the production branch, excluding the .github folder. Please review and approve to proceed with the merge.")
           echo "PR_URL=$pr_url" >> $GITHUB_ENV
       - name: Output PR URL
