@@ -32,8 +32,6 @@ jobs:
   create_pull_request:
     needs: test_and_build_frontend
     runs-on: ubuntu-latest
-    outputs:
-      pr_created: ${{ steps.pr_creation.outputs.pr_created }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -45,41 +43,19 @@ jobs:
           git config user.email github-actions@github.com
           git checkout -b temp-staging-branch staging
           git rm -r --cached .github
-          git commit -m "Remove .github folder for merging" || echo "No changes to commit"
-          git push origin temp-staging-branch
-      - name: Check for differences
-        id: diff_check
-        run: |
-          git fetch origin production:production
-          if git diff --quiet production temp-staging-branch; then
-            echo "No differences found between production and temp-staging-branch"
-            echo "::set-output name=has_diff::false"
-          else
-            echo "Differences found between production and temp-staging-branch"
-            echo "::set-output name=has_diff::true"
-          fi
+          git commit -m "Remove .github folder for merging"
       - name: Create Pull Request
-        id: pr_creation
-        if: steps.diff_check.outputs.has_diff == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.IL8_CI_CD }}
         run: |
           pr_url=$(gh pr create --base production --head temp-staging-branch --title "Merge Staging to Production (Excluding .github)" --body "This PR merges the latest changes from the staging branch into the production branch, excluding the .github folder. Please review and approve to proceed with the merge.")
           echo "PR_URL=$pr_url" >> $GITHUB_ENV
-          echo "::set-output name=pr_created::true"
       - name: Output PR URL
-        if: steps.diff_check.outputs.has_diff == 'true'
         run: echo "Pull request created - ${{ env.PR_URL }}"
-      - name: No changes to merge
-        if: steps.diff_check.outputs.has_diff == 'false'
-        run: |
-          echo "No changes to merge. Production is already up to date with staging (excluding .github folder)."
-          git push origin --delete temp-staging-branch
 
   merge_pull_request:
     needs: create_pull_request
     runs-on: ubuntu-latest
-    if: ${{ needs.create_pull_request.outputs.pr_created == 'true' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
