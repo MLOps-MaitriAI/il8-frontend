@@ -1,0 +1,40 @@
+name: Deploy to Akamai Server
+
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install sshpass
+        run: sudo apt-get install sshpass
+
+      - name: Deploy to Akamai server
+        env:
+          SERVER_IP: ${{ secrets.AKAMAI_SERVER_IP }}
+          SERVER_USER: ${{ secrets.AKAMAI_SERVER_USER }}
+          SERVER_PASSWORD: ${{ secrets.AKAMAI_SERVER_PASSWORD }}
+          WEBSITE_FOLDER: ${{ secrets.WEBSITE_FOLDER }}
+        run: |
+          # Stop the running container
+          sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker stop website-container || true"
+          
+          # Remove the old container
+          sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker rm website-container || true"
+          
+          # Copy the updated files to the server
+          sshpass -p "$SERVER_PASSWORD" rsync -avz --delete --exclude='.git' --exclude='.github' ./ $SERVER_USER@$SERVER_IP:$WEBSITE_FOLDER
+          
+          # Build the new Docker image
+          sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd $WEBSITE_FOLDER && docker build -t website-image ."
+          
+          # Run the new container
+          sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --name website-container -p 80:80 website-image"
+          
+          echo "Deployment completed successfully!"
