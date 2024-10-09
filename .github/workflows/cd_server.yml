@@ -1,4 +1,4 @@
-name: Deploy to Akamai Server
+name: Deploy to Akamai Server (Excluding .github)
 
 on:
   push:
@@ -11,9 +11,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Fetch all history for all branches and tags
 
-      - name: Install sshpass
-        run: sudo apt-get install sshpass
+      - name: Install sshpass and rsync
+        run: sudo apt-get update && sudo apt-get install -y sshpass rsync
 
       - name: Deploy to Akamai server
         env:
@@ -24,17 +26,39 @@ jobs:
         run: |
           # Stop the running container
           sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker stop website-container || true"
-          
+
           # Remove the old container
           sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker rm website-container || true"
-          
-          # Copy the updated files to the server
-          sshpass -p "$SERVER_PASSWORD" rsync -avz --delete --exclude='.git' --exclude='.github' ./ $SERVER_USER@$SERVER_IP:$WEBSITE_FOLDER
-          
+
+          # Create a temporary directory for staging changes
+          mkdir temp_staging
+
+          # Copy only the changed files to the temporary directory, excluding .git and .github
+          git diff --name-only HEAD~1 HEAD | xargs -I {} rsync -R {} temp_staging/
+
+          # Sync the changed files to the server, excluding .git and .github
+          sshpass -p "$SERVER_PASSWORD" rsync -avz --delete --exclude='.git' --exclude='.github' temp_staging/ $SERVER_USER@$SERVER_IP:$WEBSITE_FOLDER
+
+          # Clean up the temporary directory
+          rm -rf temp_staging
+
           # Build the new Docker image
           sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd $WEBSITE_FOLDER && docker build -t website-image ."
-          
+
           # Run the new container
           sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --name website-container -p 80:80 website-image"
-          
+
           echo "Deployment completed successfully!"
+
+      - name: Verify Deployment
+        env:
+          SERVER_IP: ${{ secrets.AKAMAI_SERVER_IP }}
+          SERVER_USER: ${{ secrets.AKAMAI_SERVER_USER }}
+          SERVER_PASSWORD: ${{ secrets.AKAMAI_SERVER_PASSWORD }}
+          WEBSITE_FOLDER: ${{ secrets.WEBSITE_FOLDER }}
+        run: |
+          sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "ls -la $WEBSITE_FOLDER"
+          sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker ps | grep website-container"
+
+      - name: Deployment Status
+        run: echo "Deployment completed. Please check the Verify Deployment step output to confirm the updated files and container status."
