@@ -37,7 +37,7 @@ jobs:
           git diff --name-only HEAD~1 HEAD | xargs -I {} rsync -R {} temp_staging/
 
           # Sync the changed files to the server, excluding .git and .github
-          sshpass -p "$SERVER_PASSWORD" rsync -avz --delete --exclude='.git' --exclude='.github' temp_staging/ $SERVER_USER@$SERVER_IP:$WEBSITE_FOLDER
+          sshpass -p "$SERVER_PASSWORD" rsync -avz --exclude='.git' --exclude='.github' temp_staging/ $SERVER_USER@$SERVER_IP:$WEBSITE_FOLDER
 
           # Clean up the temporary directory
           rm -rf temp_staging
